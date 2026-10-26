@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SDS Retrieval Agent — AI-Powered Safety Data Sheet Finder</title>
+  <meta name="description" content="Upload an Excel list of chemical products and let the AI agent automatically retrieve the latest Safety Data Sheets from supplier websites." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ─────────────── HEADER ─────────────── -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚗️</span>
+        <div>
+          <span class="logo-title">SDS Retrieval Agent</span>
+          <span class="logo-sub">AI-Powered Safety Data Sheet Finder</span>
+        </div>
+      </div>
+      <nav class="nav-pills">
+        <button class="nav-btn active" data-tab="upload" id="nav-upload">Upload</button>
+        <button class="nav-btn" data-tab="products" id="nav-products">Products</button>
+        <button class="nav-btn" data-tab="results" id="nav-results">SDS Results</button>
+        <button class="nav-btn" data-tab="metrics" id="nav-metrics">📊 Metrics</button>
+      </nav>
+      <div class="header-status" id="header-status">
+        <span class="status-dot idle" id="status-dot"></span>
+        <span id="status-text">Idle</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─────────────── MAIN ─────────────── -->
+  <main class="main">
+
+    <!-- ═══ TAB: UPLOAD ═══ -->
+    <section class="tab-panel active" id="tab-upload">
+      <div class="page-hero">
+        <h1>Upload Your Chemical Product List</h1>
+        <p>Drop an Excel or CSV file with your products. The AI agent will search each supplier's website for the <strong>latest</strong> SDS PDF.</p>
+        <a href="/template" class="btn btn-outline btn-sm" download>⬇ Download Template</a>
+      </div>
+
+      <!-- Drop zone -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-inner">
+          <div class="dropzone-icon">📂</div>
+          <p class="dropzone-title">Drag & Drop your Excel file here</p>
+          <p class="dropzone-sub">or click to browse &nbsp;•&nbsp; .xlsx / .xls / .csv</p>
+          <input type="file" id="file-input" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn btn-primary" id="browse-btn">Browse File</button>
+        </div>
+        <div class="dropzone-progress hidden" id="upload-progress">
+          <div class="spinner"></div>
+          <span id="upload-msg">Uploading…</span>
+        </div>
+      </div>
+
+      <!-- Supported suppliers -->
+      <div class="supplier-grid">
+        <h2 class="section-title">Supported Suppliers</h2>
+        <div class="supplier-cards">
+          <div class="supplier-card"><span>🔬</span> ThermoFisher</div>
+          <div class="supplier-card"><span>🧪</span> Sigma Aldrich</div>
+          <div class="supplier-card"><span>💧</span> MilliporeSigma / Merck</div>
+          <div class="supplier-card"><span>🧬</span> Enamine</div>
+          <div class="supplier-card"><span>🏭</span> Henkel / Loctite / Fel-Pro</div>
+          <div class="supplier-card"><span>⚙️</span> Solvay</div>
+          <div class="supplier-card"><span>💊</span> Pharmablock</div>
+          <div class="supplier-card"><span>🔩</span> BLD Pharmatech</div>
+          <div class="supplier-card"><span>🌐</span> TCI Chemicals</div>
+          <div class="supplier-card"><span>🍁</span> 3M Canada / Imation</div>
+          <div class="supplier-card"><span>⚡</span> Honeywell / AlliedSignal</div>
+          <div class="supplier-card"><span>🧪</span> Hach Co.</div>
+          <div class="supplier-card"><span>⚗️</span> Avantor / JT Baker / Macron</div>
+          <div class="supplier-card"><span>🚗</span> Kleen-Flo</div>
+          <div class="supplier-card"><span>🛠️</span> ITW ProBrands / LPS</div>
+          <div class="supplier-card"><span>📷</span> Eastman Kodak</div>
+          <div class="supplier-card faded"><span>➕</span> Any other (Generic)</div>
+        </div>
+      </div>
+
+      <!-- Upload result toast area -->
+      <div id="upload-toast" class="toast hidden"></div>
+    </section>
+
+    <!-- ═══ TAB: PRODUCTS ═══ -->
+    <section class="tab-panel" id="tab-products">
+      <div class="toolbar">
+        <h2 class="section-title">📋 Products</h2>
+        <div class="toolbar-actions">
+          <input type="text" id="product-search" class="search-input" placeholder="Filter products…" />
+          <button class="btn btn-primary" id="run-all-btn">▶ Run All</button>
+          <button class="btn btn-outline btn-danger" id="clear-btn">🗑 Clear All</button>
+          <button class="btn btn-outline" id="refresh-products-btn">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="products-table-wrap">
+        <table class="data-table" id="products-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Supplier</th><th>Product Name</th>
+              <th>Part #</th><th>CAS #</th><th>Lang</th><th>Jurisdiction</th>
+              <th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="products-empty">
+          <p>No products yet. Upload an Excel file to get started.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: SDS RESULTS ═══ -->
+    <section class="tab-panel" id="tab-results">
+      <div class="toolbar">
+        <h2 class="section-title">📄 SDS Results</h2>
+        <div class="toolbar-actions">
+          <input type="text" id="results-search" class="search-input" placeholder="Filter results…" />
+          <button class="btn btn-outline" id="refresh-results-btn">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="results-grid" id="results-grid"></div>
+      <div class="empty-state" id="results-empty" style="display:none">
+        <p>No SDS results yet. Run a search from the Products tab.</p>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: EVALUATION METRICS ═══ -->
+    <section class="tab-panel" id="tab-metrics">
+      <div class="toolbar">
+        <h2 class="section-title">📊 Evaluation Metrics</h2>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" id="btn-refresh-metrics">↻ Refresh</button>
+        </div>
+      </div>
+
+      <!-- Metrics Overview Cards -->
+      <div class="stats-grid" id="metrics-summary-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div>
+            <div class="stat-value" id="metric-rate">0.0%</div>
+            <div class="stat-label">Retrieval Success Rate</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div>
+            <div class="stat-value" id="metric-total">0</div>
+            <div class="stat-label">Total Processed</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div>
+            <div class="stat-value" id="metric-found">0</div>
+            <div class="stat-label">Verified SDS Found</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⚠️</div>
+          <div>
+            <div class="stat-value" id="metric-notfound">0</div>
+            <div class="stat-label">Not Found / Error</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supplier Breakdown Table -->
+      <div style="margin-top:24px;">
+        <h3 style="font-size:16px;margin-bottom:12px;color:var(--text-primary)">🏢 Accuracy by Supplier</h3>
+        <div class="table-wrap">
+          <table class="data-table" id="metrics-supplier-table">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Total Requests</th>
+                <th>Found</th>
+                <th>Not Found</th>
+                <th>Success Rate (%)</th>
+              </tr>
+            </thead>
+            <tbody id="metrics-supplier-tbody">
+              <tr class="empty-row"><td colspan="5">No evaluation data available. Run retrieval first.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─────────────── MODAL: Edit Product ─────────────── -->
+  <div class="modal-overlay hidden" id="edit-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Product</h3>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-id" />
+        <div class="form-row">
+          <label>Supplier</label>
+          <input type="text" id="edit-supplier" class="form-input" />
+        </div>
+        <div class="form-row">
+          <label>Product Name</label>
+          <input type="text" id="edit-product-name" class="form-input" />
+        </div>
+        <div class="form-row">
+          <label>Part Number</label>
+          <input type="text" id="edit-part-number" class="form-input" />
+        </div>
+        <div class="form-row">
+          <label>CAS Number</label>
+          <input type="text" id="edit-cas" class="form-input" />
+        </div>
+        <div class="form-row two-col">
+          <div>
+            <label>Language</label>
+            <select id="edit-language" class="form-input">
+              <option value="EN">EN</option><option value="DE">DE</option>
+              <option value="FR">FR</option><option value="ES">ES</option>
+              <option value="ZH">ZH</option><option value="JA">JA</option>
+            </select>
+          </div>
+          <div>
+            <label>Jurisdiction</label>
+            <select id="edit-jurisdiction" class="form-input">
+              <option value="US">US</option><option value="EU">EU</option>
+              <option value="GHS">GHS</option><option value="UK">UK</option>
+              <option value="CA">CA</option><option value="AU">AU</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Notes</label>
+          <input type="text" id="edit-notes" class="form-input" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="modal-save">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── GLOBAL NOTIFICATION ─────────────── -->
+  <div class="notification-area" id="notification-area"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
